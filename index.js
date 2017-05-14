@@ -21,7 +21,7 @@ module.exports = function(schema) {
 
           schema.path(path).validate({
             validator: function() {
-              var arr = this.get(_path);
+              var arr = this.getValue(path + '.' + _path);
               var dup = hasDuplicates(arr);
               if (dup) {
                 return false;
@@ -118,6 +118,9 @@ module.exports = function(schema) {
 };
 
 function hasDuplicates(arr) {
+  if (!arr) {
+    return false;
+  }
   var len = arr.length;
   var map = {};
   var el;
@@ -130,5 +133,5 @@ function hasDuplicates(arr) {
     map[el.toString()] = true;
   }
 
-  return null;
+  return false;
 }

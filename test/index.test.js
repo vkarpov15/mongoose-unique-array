@@ -53,4 +53,30 @@ describe('arrayUnique', function() {
       done();
     });
   });
+
+  it('nested', function(done) {
+    var schema = new mongoose.Schema({
+      nested: {
+        arr: [{ type: String, unique: true }],
+        docArr: [{ name: { type: String, unique: true } }]
+      }
+    });
+    schema.plugin(arrayUnique);
+    var M = mongoose.model('T3', schema);
+    var m = new M({
+      nested: {
+        arr: ['test', 'test'],
+        docArr: [{ name: 'test' }, { name: 'test' }]
+      }
+    });
+
+    m.save(function(error) {
+      assert.ok(error);
+      assert.ok(error.errors['nested.arr'].message.indexOf('Duplicate values') !== -1,
+        error.errors['nested.arr'].message);
+      assert.ok(error.errors['nested.docArr'].message.indexOf('Duplicate values') !== -1,
+        error.errors['nested.docArr'].message);
+      done();
+    });
+  });
 });
