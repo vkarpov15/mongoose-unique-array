@@ -39,12 +39,17 @@ describe('arrayUnique', function() {
     });
     schema.plugin(arrayUnique);
     var M = mongoose.model('T2', schema);
-    var m = new M({ arr: ['test', 'test'] });
+    var m = new M({
+      arr: ['test', 'test'],
+      docArr: [{ name: 'test' }, { name: 'test' }]
+    });
 
     m.save(function(error) {
       assert.ok(error);
       assert.ok(error.errors['arr'].message.indexOf('Duplicate values') !== -1,
         error.errors['arr'].message);
+      assert.ok(error.errors['docArr'].message.indexOf('Duplicate values') !== -1,
+        error.errors['docArr'].message);
       done();
     });
   });

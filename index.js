@@ -18,6 +18,18 @@ module.exports = function(schema) {
         if (arrSchema.paths[_path].options.unique) {
           uniqueDocumentArrayPaths[path] = uniqueDocumentArrayPaths[path] || [];
           uniqueDocumentArrayPaths[path].push(_path);
+
+          schema.path(path).validate({
+            validator: function() {
+              var arr = this.get(_path);
+              var dup = hasDuplicates(arr);
+              if (dup) {
+                return false;
+              }
+              return true;
+            },
+            message: 'Duplicate values in array `' + _path + '`: [{VALUE}]'
+          });
         }
       });
     });
