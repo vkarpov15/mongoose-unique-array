@@ -28,17 +28,37 @@ module.exports = function(schema) {
         !paths[path].$isMongooseDocumentArray &&
         paths[path].caster.options.unique) {
       uniquePrimitiveArrayPaths[path] = true;
+
+      schema.path(path).validate({
+        validator: function(arr) {
+          var dup = hasDuplicates(arr);
+          if (dup) {
+            return false;
+          }
+          return true;
+        },
+        message: 'Duplicate values in array `' + path + '`: [{VALUE}]'
+      });
     }
   });
 
   schema.pre('save', function(next) {
     var dirt;
-    var dirty = this.$__dirty();
+    var dirty;
     var i = 0;
-    var len = dirty.length;
+    var len;
     var j = 0;
     var numDocArrayPaths;
     var uniqueDocArrPaths;
+    var arrPaths;
+
+    if (this.isNew) {
+      // New doc, already verified existing arrays have no dups
+      return next();
+    }
+
+    dirty = this.$__dirty();
+    len = dirty.length;
 
     for (i = 0; i < len; ++i) {
       dirt = dirty[i];
@@ -84,3 +104,19 @@ module.exports = function(schema) {
     next();
   });
 };
+
+function hasDuplicates(arr) {
+  var len = arr.length;
+  var map = {};
+  var el;
+
+  for (var i = 0; i < len; ++i) {
+    el = arr[i];
+    if (map[el.toString()]) {
+      return true;
+    }
+    map[el.toString()] = true;
+  }
+
+  return null;
+}

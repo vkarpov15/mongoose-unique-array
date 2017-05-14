@@ -31,4 +31,21 @@ describe('arrayUnique', function() {
       });
     });
   });
+
+  it('with new docs', function(done) {
+    var schema = new mongoose.Schema({
+      arr: [{ type: String, unique: true }],
+      docArr: [{ name: { type: String, unique: true } }]
+    });
+    schema.plugin(arrayUnique);
+    var M = mongoose.model('T2', schema);
+    var m = new M({ arr: ['test', 'test'] });
+
+    m.save(function(error) {
+      assert.ok(error);
+      assert.ok(error.errors['arr'].message.indexOf('Duplicate values') !== -1,
+        error.errors['arr'].message);
+      done();
+    });
+  });
 });
