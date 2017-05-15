@@ -65,13 +65,40 @@ describe('arrayUnique', function() {
     });
   });
 
+  it('with race condition', function(done) {
+    var schema = new mongoose.Schema({
+      arr: [{ type: String, unique: true }]
+    });
+    schema.plugin(arrayUnique);
+    var M = mongoose.model('T3', schema);
+
+    M.create({}, function(error, doc) {
+      assert.ifError(error);
+      M.findById(doc, function(error, doc1) {
+        M.findById(doc, function(error, doc2) {
+          doc1.arr.push('test');
+          doc1.save(function(error) {
+            assert.ifError(error);
+            doc2.arr.push('test');
+            doc2.save(function(error) {
+              assert.ok(error);
+              assert.ok(error.message.indexOf('No matching document') !== -1,
+                error.message);
+              done();
+            });
+          });
+        });
+      });
+    });
+  });
+
   it('with new docs', function(done) {
     var schema = new mongoose.Schema({
       arr: [{ type: String, unique: true }],
       docArr: [{ name: { type: String, unique: true } }]
     });
     schema.plugin(arrayUnique);
-    var M = mongoose.model('T3', schema);
+    var M = mongoose.model('T4', schema);
     var m = new M({
       arr: ['test', 'test'],
       docArr: [{ name: 'test' }, { name: 'test' }]
@@ -95,7 +122,7 @@ describe('arrayUnique', function() {
       }
     });
     schema.plugin(arrayUnique);
-    var M = mongoose.model('T4', schema);
+    var M = mongoose.model('T5', schema);
     var m = new M({
       nested: {
         arr: ['test', 'test'],
