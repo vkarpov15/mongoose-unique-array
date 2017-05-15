@@ -9,37 +9,14 @@ if (process.env.D) {
 }
 
 describe('arrayUnique', function() {
+  let db;
+
   before(function() {
-    mongoose.connect('mongodb://localhost:27017/mongoose_test');
+    db = mongoose.createConnection('mongodb://localhost:27017/mongoose_test');
   });
 
   beforeEach(function(done) {
-    mongoose.connection.dropDatabase(done);
-  });
-
-  it('works', function(done) {
-    var schema = new mongoose.Schema({
-      arr: [{ type: String, unique: true }],
-      docArr: [{ name: { type: String, unique: true } }]
-    });
-    schema.plugin(arrayUnique);
-    var M = mongoose.model('T1', schema);
-
-    M.create({}, function(error, doc) {
-      assert.ifError(error);
-      doc.arr.push('test');
-      doc.docArr.push({ name: 'test' });
-      doc.save(function(error) {
-        assert.ifError(error);
-        doc.arr.push('test');
-        doc.save(function(error) {
-          assert.ok(error);
-          assert.ok(error.errors['arr'].message.indexOf('Duplicate values') !== -1,
-            error.errors['arr'].message);
-          done();
-        });
-      });
-    });
+    db.dropDatabase(done);
   });
 
   it('pushing onto doc array', function(done) {
@@ -47,7 +24,7 @@ describe('arrayUnique', function() {
       docArr: [{ name: { type: String, unique: true } }]
     });
     schema.plugin(arrayUnique);
-    var M = mongoose.model('T2', schema);
+    var M = db.model('T2', schema);
 
     M.create({}, function(error, doc) {
       assert.ifError(error);
@@ -70,7 +47,7 @@ describe('arrayUnique', function() {
       arr: [{ type: String, unique: true }]
     });
     schema.plugin(arrayUnique);
-    var M = mongoose.model('T3', schema);
+    var M = db.model('T3', schema);
 
     M.create({}, function(error, doc) {
       assert.ifError(error);
@@ -98,7 +75,7 @@ describe('arrayUnique', function() {
       docArr: [{ name: { type: String, unique: true } }]
     });
     schema.plugin(arrayUnique);
-    var M = mongoose.model('T4', schema);
+    var M = db.model('T4', schema);
     var m = new M({
       arr: ['test', 'test'],
       docArr: [{ name: 'test' }, { name: 'test' }]
@@ -122,7 +99,7 @@ describe('arrayUnique', function() {
       }
     });
     schema.plugin(arrayUnique);
-    var M = mongoose.model('T5', schema);
+    var M = db.model('T5', schema);
     var m = new M({
       nested: {
         arr: ['test', 'test'],

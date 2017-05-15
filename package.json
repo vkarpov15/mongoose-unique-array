@@ -18,7 +18,7 @@
   "license": "Apache 2.0",
   "main": "int32.js",
   "peerDependencies": {
-    "mongoose": ">= 4.9.0"
+    "mongoose": ">= 4.10.0"
   },
   "repository": {
     "type": "git",
