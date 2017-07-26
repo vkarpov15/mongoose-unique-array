@@ -19,6 +19,10 @@ describe('arrayUnique', function() {
     db.dropDatabase(done);
   });
 
+  beforeEach(function() {
+    mongoose.Error.messages.DocumentNotFoundError = null;
+  });
+
   it('pushing onto doc array', function(done) {
     var schema = new mongoose.Schema({
       docArr: [{ name: { type: String, unique: true } }]
@@ -59,7 +63,7 @@ describe('arrayUnique', function() {
             doc2.arr.push('test');
             doc2.save(function(error) {
               assert.ok(error);
-              assert.ok(error.message.indexOf('No matching document') !== -1,
+              assert.ok(error.message.indexOf('No document') !== -1,
                 error.message);
               done();
             });
@@ -114,6 +118,39 @@ describe('arrayUnique', function() {
       assert.ok(error.errors['nested.docArr'].message.indexOf('Duplicate values') !== -1,
         error.errors['nested.docArr'].message);
       done();
+    });
+  });
+
+  it('custom error message', function(done) {
+    mongoose.Error.messages.DocumentNotFoundError = function(query) {
+      return 'Woops! ' + query._id;
+    };
+
+    var schema = new mongoose.Schema({
+      arr: [{ type: String, unique: true }]
+    });
+    schema.plugin(arrayUnique);
+    var M = db.model('gh2', schema);
+
+    M.create({}, function(error, doc) {
+      assert.ifError(error);
+      M.findById(doc, function(error, doc1) {
+        M.findById(doc, function(error, doc2) {
+          doc1.arr.push('test');
+          doc1.save(function(error) {
+            assert.ifError(error);
+            doc2.arr.push('test');
+            doc2.save(function(error) {
+              assert.ok(error);
+              assert.ok(error.message.indexOf('Woops!') !== -1,
+                error.message);
+              assert.ok(error.message.indexOf(doc2._id.toString()) !== -1,
+                error.message);
+              done();
+            });
+          });
+        });
+      });
     });
   });
 });

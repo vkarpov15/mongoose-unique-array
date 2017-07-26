@@ -117,10 +117,10 @@ describe('API', function() {
             doc2.arr.push('test');
             doc2.save(function(error) {
               // Because of plugin, you'll get the below error
-              // VersionError: No matching document found for id "59192cbac4fd9871f28f4d61"
+              // DocumentNotFoundError: No document found for query "{ _id: 5978d1cac014ac1d644310b7, arr: { '$nin': [ 'test' ] } }"
               // acquit:ignore:start
               assert.ok(error);
-              assert.ok(error.message.indexOf('No matching document') !== -1,
+              assert.ok(error.message.indexOf('No document') !== -1,
                 error.message);
               done();
               // acquit:ignore:end
