@@ -1,6 +1,6 @@
 # mongoose-unique-array
 
-Mongoose plugin for enforcing `unique` constraints in arrays
+Mongoose plugin for enforcing `unique` constraints in arrays with `doc.save()`
 
 [![CircleCI](https://circleci.com/gh/vkarpov15/mongoose-unique-array/tree/master.svg?style=svg)](https://circleci.com/gh/vkarpov15/mongoose-unique-array/tree/master)
 
