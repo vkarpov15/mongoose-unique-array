@@ -22,6 +22,11 @@ describe('API', function() {
     db.dropDatabase(done);
   });
 
+  after(function() {
+    mongoose.disconnect();
+    db.close();
+  });
+
   /**
    * If you set the `unique` property to `true` on a schema path, this plugin
    * will add a custom validator that ensures the array values are unique before

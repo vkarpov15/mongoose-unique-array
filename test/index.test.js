@@ -19,6 +19,10 @@ describe('arrayUnique', function() {
     db.dropDatabase(done);
   });
 
+  after(function() {
+    db.close();
+  });
+
   it('pushing onto doc array', function(done) {
     var schema = new mongoose.Schema({
       docArr: [{ name: { type: String, unique: true } }]
@@ -31,7 +35,7 @@ describe('arrayUnique', function() {
       doc.docArr.push({ name: 'test' });
       doc.save(function(error) {
         assert.ifError(error);
-        doc.docArr.push('test');
+        doc.docArr.push({ name: 'test' });
         doc.save(function(error) {
           assert.ok(error);
           assert.ok(error.errors['docArr'].message.indexOf('Duplicate values') !== -1,
