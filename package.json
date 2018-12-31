@@ -4,13 +4,13 @@
   "author": "Valeri Karpov <val@karpov.io>",
   "description": "Plugin to handle `save()` with `unique` in arrays",
   "devDependencies": {
-    "acquit": "0.4.1",
-    "acquit-ignore": "0.0.3",
-    "acquit-markdown": "0.0.5",
+    "acquit": "1.x",
+    "acquit-ignore": "0.1.0",
+    "acquit-markdown": "0.1.0",
     "istanbul": "0.4.2",
-    "mocha": "2.0.0",
-    "mongodb": "2.1.x",
-    "mongoose": "4.10.0"
+    "mocha": "5.x",
+    "mongodb": "2.x",
+    "mongoose": "5.x"
   },
   "engines": {
     "node": ">= 4.0.0"
