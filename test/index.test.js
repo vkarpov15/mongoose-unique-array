@@ -12,7 +12,9 @@ describe('arrayUnique', function() {
   let db;
 
   before(function() {
-    db = mongoose.createConnection('mongodb://localhost:27017/mongoose_test');
+    db = mongoose.createConnection('mongodb://localhost:27017/mongoose_test', {
+      useNewUrlParser: true
+    });
   });
 
   beforeEach(function(done) {
@@ -119,5 +121,20 @@ describe('arrayUnique', function() {
         error.errors['nested.docArr'].message);
       done();
     });
+  });
+
+  it('with array set to null (gh-1)', function() {
+    const schema = new mongoose.Schema({
+      arr: [{ type: String, unique: true }]
+    });
+    schema.plugin(arrayUnique);
+    const M = db.model('gh1', schema);
+
+    return M.create({ arr: ['foo'] }).
+      then(res => {
+        res.arr = null;
+        // Should succeed
+        return res.save();
+      });
   });
 });
