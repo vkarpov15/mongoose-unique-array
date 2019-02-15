@@ -1,6 +1,6 @@
 {
   "name": "mongoose-unique-array",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "author": "Valeri Karpov <val@karpov.io>",
   "description": "Plugin to handle `save()` with `unique` in arrays",
   "devDependencies": {
