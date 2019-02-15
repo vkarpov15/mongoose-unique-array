@@ -7,6 +7,7 @@
     "acquit": "1.x",
     "acquit-ignore": "0.1.0",
     "acquit-markdown": "0.1.0",
+    "eslint": "5.13.0",
     "istanbul": "0.4.2",
     "mocha": "5.x",
     "mongodb": "2.x",
@@ -27,6 +28,65 @@
   "scripts": {
     "coverage": "istanbul cover _mocha -- -R spec ./test/*",
     "docs": "node docs.js",
+    "lint": "eslint .",
     "test": "mocha ./test/*"
+  },
+  "eslintConfig": {
+    "extends": [
+      "eslint:recommended"
+    ],
+    "parserOptions": {
+      "ecmaVersion": 2015
+    },
+    "env": {
+      "node": true,
+      "es6": true
+    },
+    "rules": {
+      "comma-style": "error",
+      "consistent-this": [
+        "error",
+        "_this"
+      ],
+      "indent": [
+        "error",
+        2,
+        {
+          "SwitchCase": 1,
+          "VariableDeclarator": 2
+        }
+      ],
+      "keyword-spacing": "error",
+      "no-buffer-constructor": "warn",
+      "no-console": "off",
+      "no-multi-spaces": "error",
+      "func-call-spacing": "error",
+      "no-trailing-spaces": "error",
+      "quotes": [
+        "error",
+        "single"
+      ],
+      "semi": "error",
+      "space-before-blocks": "error",
+      "space-before-function-paren": [
+        "error",
+        "never"
+      ],
+      "space-infix-ops": "error",
+      "space-unary-ops": "error",
+      "no-var": "warn",
+      "prefer-const": "warn",
+      "strict": [
+        "error",
+        "global"
+      ],
+      "no-restricted-globals": [
+        "error",
+        {
+          "name": "context",
+          "message": "Don't use Mocha's global context"
+        }
+      ]
+    }
   }
 }
