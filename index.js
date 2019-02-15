@@ -55,30 +55,24 @@ module.exports = function(schema) {
   });
 
   schema.pre('save', function(next) {
-    var dirt;
-    var dirty;
-    var i = 0;
-    var len;
-    var j = 0;
     var numDocArrayPaths;
     var uniqueDocArrPaths;
-    var arrPaths;
 
     if (this.isNew) {
       // New doc, already verified existing arrays have no dups
       return next();
     }
 
-    dirty = this.$__dirty();
-    len = dirty.length;
+    const dirty = this.$__dirty();
+    const len = dirty.length;
 
-    for (i = 0; i < len; ++i) {
-      dirt = dirty[i];
+    for (let i = 0; i < len; ++i) {
+      const dirt = dirty[i];
       if (!uniquePrimitiveArrayPaths[dirt.path] &&
           !uniqueDocumentArrayPaths[dirt.path]) {
         continue;
       }
-      if (!dirt.value._atomics || !('$push' in dirt.value._atomics) || dirt.value._atomics.$push.$each == null) {
+      if (!has$push(dirt) || dirt.value._atomics.$push.$each == null) {
         continue;
       }
 
@@ -89,7 +83,7 @@ module.exports = function(schema) {
         this.$where = this.$where || {};
         uniqueDocArrPaths = uniqueDocumentArrayPaths[dirt.path];
         numDocArrayPaths = uniqueDocArrPaths.length;
-        for (j = 0; j < numDocArrayPaths; ++j) {
+        for (let j = 0; j < numDocArrayPaths; ++j) {
           this.$where[dirt.path + '.' + uniqueDocArrPaths[j]] = {
             $nin: dirt.value.map(function(subdoc) {
               return subdoc.get(uniqueDocArrPaths[j]);
@@ -100,7 +94,7 @@ module.exports = function(schema) {
     }
 
     this.$__dirty().forEach(dirt => {
-      if (dirt.value._atomics && '$push' in dirt.value._atomics && dirt.value._atomics.$push.$each != null) {
+      if (has$push(dirt) && dirt.value._atomics.$push.$each != null) {
         this.$where = this.$where || {};
         if (dirt.schema.$isMongooseDocumentArray) {
           this.$where[dirt.path + '._id'] = {
@@ -116,6 +110,12 @@ module.exports = function(schema) {
     next();
   });
 };
+
+function has$push(dirt) {
+  return dirt.value != null &&
+    dirt.value._atomics != null &&
+    '$push' in dirt.value._atomics;
+}
 
 function hasDuplicates(arr) {
   if (!arr) {
