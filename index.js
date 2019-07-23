@@ -21,7 +21,8 @@ module.exports = function(schema) {
 
           schema.path(path).validate({
             validator: function() {
-              var arr = this.getValue(path + '.' + _path);
+              // handle private API changes for mongoose >= 5.5.14 Automattic/mongoose#7870
+              var arr = (this.$__getValue || this.getValue)(path + '.' + _path);
               var dup = hasDuplicates(arr);
               if (dup) {
                 return false;
