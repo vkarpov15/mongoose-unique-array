@@ -1,3 +1,7 @@
+0.3.2 / 2019-07-23
+==================
+ * fix: handle private API changes for mongoose >= 5.5.14 #6 [Fonger](https://github.com/Fonger)
+
 0.3.1 / 2019-02-15
 ==================
  * fix: don't throw error if array set to null #1
