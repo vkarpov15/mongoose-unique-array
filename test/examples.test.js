@@ -10,7 +10,7 @@ describe('API', function() {
 
   before(function(done) {
     const uri = 'mongodb://localhost:27017/test';
-    mongoose.connect(uri);
+    mongoose.connect(uri, { useNewUrlParser: true });
     mongodb.MongoClient.connect(uri, function(error, _db) {
       assert.ifError(error);
       db = _db;
@@ -20,6 +20,11 @@ describe('API', function() {
 
   beforeEach(function(done) {
     db.dropDatabase(done);
+  });
+
+  after(function() {
+    mongoose.disconnect();
+    db.close();
   });
 
   /**

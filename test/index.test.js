@@ -12,7 +12,9 @@ describe('arrayUnique', function() {
   let db;
 
   before(function() {
-    db = mongoose.createConnection('mongodb://localhost:27017/mongoose_test');
+    db = mongoose.createConnection('mongodb://localhost:27017/mongoose_test', {
+      useNewUrlParser: true
+    });
   });
 
   beforeEach(function(done) {
@@ -21,6 +23,10 @@ describe('arrayUnique', function() {
 
   beforeEach(function() {
     mongoose.Error.messages.DocumentNotFoundError = null;
+  });
+    
+  after(function() {
+    db.close();
   });
 
   it('pushing onto doc array', function(done) {
@@ -35,7 +41,7 @@ describe('arrayUnique', function() {
       doc.docArr.push({ name: 'test' });
       doc.save(function(error) {
         assert.ifError(error);
-        doc.docArr.push('test');
+        doc.docArr.push({ name: 'test' });
         doc.save(function(error) {
           assert.ok(error);
           assert.ok(error.errors['docArr'].message.indexOf('Duplicate values') !== -1,
@@ -152,5 +158,20 @@ describe('arrayUnique', function() {
         });
       });
     });
+  });
+    
+  it('with array set to null (gh-1)', function() {
+    const schema = new mongoose.Schema({
+      arr: [{ type: String, unique: true }]
+    });
+    schema.plugin(arrayUnique);
+    const M = db.model('gh1', schema);
+
+    return M.create({ arr: ['foo'] }).
+      then(res => {
+        res.arr = null;
+        // Should succeed
+        return res.save();
+      });
   });
 });

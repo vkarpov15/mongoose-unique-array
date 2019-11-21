@@ -21,7 +21,8 @@ module.exports = function(schema) {
 
           schema.path(path).validate({
             validator: function() {
-              var arr = this.getValue(path + '.' + _path);
+              // handle private API changes for mongoose >= 5.5.14 Automattic/mongoose#7870
+              var arr = (this.$__getValue || this.getValue).call(this, path + '.' + _path);
               var dup = hasDuplicates(arr);
               if (dup) {
                 return false;
@@ -55,41 +56,35 @@ module.exports = function(schema) {
   });
 
   schema.pre('save', function(next) {
-    var dirt;
-    var dirty;
-    var i = 0;
-    var len;
-    var j = 0;
     var numDocArrayPaths;
     var uniqueDocArrPaths;
-    var arrPaths;
 
     if (this.isNew) {
       // New doc, already verified existing arrays have no dups
       return next();
     }
 
-    dirty = this.$__dirty();
-    len = dirty.length;
+    const dirty = this.$__dirty();
+    const len = dirty.length;
 
-    for (i = 0; i < len; ++i) {
-      dirt = dirty[i];
+    for (let i = 0; i < len; ++i) {
+      const dirt = dirty[i];
       if (!uniquePrimitiveArrayPaths[dirt.path] &&
           !uniqueDocumentArrayPaths[dirt.path]) {
         continue;
       }
-      if (!dirt.value._atomics || !('$pushAll' in dirt.value._atomics)) {
+      if (!has$push(dirt) || dirt.value._atomics.$push.$each == null) {
         continue;
       }
 
       if (uniquePrimitiveArrayPaths[dirt.path]) {
         this.$where = this.$where || {};
-        this.$where[dirt.path] = { $nin: dirt.value._atomics.$pushAll };
+        this.$where[dirt.path] = { $nin: dirt.value._atomics.$push.$each };
       } else {
         this.$where = this.$where || {};
         uniqueDocArrPaths = uniqueDocumentArrayPaths[dirt.path];
         numDocArrayPaths = uniqueDocArrPaths.length;
-        for (j = 0; j < numDocArrayPaths; ++j) {
+        for (let j = 0; j < numDocArrayPaths; ++j) {
           this.$where[dirt.path + '.' + uniqueDocArrPaths[j]] = {
             $nin: dirt.value.map(function(subdoc) {
               return subdoc.get(uniqueDocArrPaths[j]);
@@ -100,22 +95,28 @@ module.exports = function(schema) {
     }
 
     this.$__dirty().forEach(dirt => {
-      if (dirt.value._atomics && '$pushAll' in dirt.value._atomics) {
+      if (has$push(dirt) && dirt.value._atomics.$push.$each != null) {
         this.$where = this.$where || {};
         if (dirt.schema.$isMongooseDocumentArray) {
           this.$where[dirt.path + '._id'] = {
-            $nin: dirt.value._atomics.$pushAll.map(function(doc) {
+            $nin: dirt.value._atomics.$push.$each.map(function(doc) {
               return doc._id;
             })
           };
         } else {
-          this.$where[dirt.path] = { $nin: dirt.value._atomics.$pushAll };
+          this.$where[dirt.path] = { $nin: dirt.value._atomics.$push.$each };
         }
       }
     });
     next();
   });
 };
+
+function has$push(dirt) {
+  return dirt.value != null &&
+    dirt.value._atomics != null &&
+    '$push' in dirt.value._atomics;
+}
 
 function hasDuplicates(arr) {
   if (!arr) {
