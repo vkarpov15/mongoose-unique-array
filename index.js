@@ -124,15 +124,17 @@ function hasDuplicates(arr) {
   }
   var len = arr.length;
   var map = {};
+  var mapId = {};
   var el;
 
   for (var i = 0; i < len; ++i) {
     el = arr[i];
-    if (map[el.toString()]) {
+
+    if (map[el.toString()] || (el.id && mapId[el.id])) {
       return true;
     }
     map[el.toString()] = true;
+    if(el.id) mapId[el.id] = true;
   }
-
   return false;
 }
