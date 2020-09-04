@@ -10,7 +10,7 @@
     "eslint": "5.13.0",
     "istanbul": "0.4.2",
     "mocha": "5.x",
-    "mongodb": "2.x",
+    "mongodb": "3.x",
     "mongoose": "5.x"
   },
   "engines": {
