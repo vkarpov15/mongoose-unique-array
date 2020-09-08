@@ -21,6 +21,10 @@ describe('arrayUnique', function() {
     db.dropDatabase(done);
   });
 
+  beforeEach(function() {
+    mongoose.Error.messages.DocumentNotFoundError = null;
+  });
+    
   after(function() {
     db.close();
   });
@@ -65,7 +69,7 @@ describe('arrayUnique', function() {
             doc2.arr.push('test');
             doc2.save(function(error) {
               assert.ok(error);
-              assert.ok(error.message.indexOf('No matching document') !== -1,
+              assert.ok(error.message.indexOf('No document') !== -1,
                 error.message);
               done();
             });
@@ -123,6 +127,39 @@ describe('arrayUnique', function() {
     });
   });
 
+  it('custom error message', function(done) {
+    mongoose.Error.messages.DocumentNotFoundError = function(query) {
+      return 'Woops! ' + query._id;
+    };
+
+    var schema = new mongoose.Schema({
+      arr: [{ type: String, unique: true }]
+    });
+    schema.plugin(arrayUnique);
+    var M = db.model('gh2', schema);
+
+    M.create({}, function(error, doc) {
+      assert.ifError(error);
+      M.findById(doc, function(error, doc1) {
+        M.findById(doc, function(error, doc2) {
+          doc1.arr.push('test');
+          doc1.save(function(error) {
+            assert.ifError(error);
+            doc2.arr.push('test');
+            doc2.save(function(error) {
+              assert.ok(error);
+              assert.ok(error.message.indexOf('Woops!') !== -1,
+                error.message);
+              assert.ok(error.message.indexOf(doc2._id.toString()) !== -1,
+                error.message);
+              done();
+            });
+          });
+        });
+      });
+    });
+  });
+    
   it('with array set to null (gh-1)', function() {
     const schema = new mongoose.Schema({
       arr: [{ type: String, unique: true }]
