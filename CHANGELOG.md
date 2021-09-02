@@ -1,3 +1,7 @@
+0.4.0 / 2021-09-02
+==================
+ * BREAKING CHANGE: upgrade to mongoose 6, drop support for Mongoose 5 #12
+
 0.3.4 / 2020-02-12
 ==================
  * fix: avoid duplicate items when using autopopulate plugin #10 [apascualm](https://github.com/apascualm)
