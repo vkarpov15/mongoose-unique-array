@@ -6,25 +6,23 @@ var mongodb = require('mongodb');
 var mongoose = require('mongoose');
 
 describe('API', function() {
-  let db;
+  let client;
 
   before(function(done) {
     const uri = 'mongodb://localhost:27017/test';
     mongoose.connect(uri, { useNewUrlParser: true });
-    mongodb.MongoClient.connect(uri, function(error, _db) {
+    mongodb.MongoClient.connect(uri, function(error, _client) {
       assert.ifError(error);
-      db = _db;
+      client = _client;
       done();
     });
   });
 
-  beforeEach(function(done) {
-    db.dropDatabase(done);
-  });
+  beforeEach(() => client.db().collection('tests').deleteMany({}));
 
   after(function() {
     mongoose.disconnect();
-    db.close();
+    client.close();
   });
 
   /**
@@ -32,7 +30,7 @@ describe('API', function() {
    * will add a custom validator that ensures the array values are unique before
    * saving.
    */
-  it('Basic Example', function(done) {
+  it('Basic Example', async function() {
     const schema = new mongoose.Schema({
       arr: [{ type: String, unique: true }],
       docArr: [{ name: { type: String, unique: true } }]
@@ -42,24 +40,16 @@ describe('API', function() {
     schema.plugin(arrayUniquePlugin);
     const M = mongoose.model('Test', schema);
 
-    M.create({}, function(error, doc) {
-      assert.ifError(error);
-      doc.arr.push('test');
-      doc.docArr.push({ name: 'test' });
-      doc.save(function(error) {
-        assert.ifError(error);
-        doc.arr.push('test');
-        doc.save(function(error) {
-          assert.ok(error);
-          // MongooseError: Duplicate values in array `arr`: [test,test]
-          assert.ok(error.errors['arr'].message.indexOf('Duplicate values') !== -1,
-            error.errors['arr'].message);
-          // acquit:ignore:start
-          done();
-          // acquit:ignore:end
-        });
-      });
-    });
+    const doc = await M.create({});
+    doc.arr.push('test');
+    doc.docArr.push({ name: 'test' });
+    await doc.save();
+
+    doc.arr.push('test');
+    const error = await doc.save().then(() => null, err => err);
+    // MongooseError: Duplicate values in array `arr`: [test,test]
+    assert.ok(error.errors['arr'].message.indexOf('Duplicate values') !== -1,
+      error.errors['arr'].message);
   });
 
   /**
@@ -69,7 +59,7 @@ describe('API', function() {
    * having the value 'test' in `arr`, but would _not_ prevent a single document from having
    * multiple instances of the value 'test' in `arr`.
    */
-  it('Why a Separate Plugin?', function(done) {
+  it('Why a Separate Plugin?', async function() {
     const schema = new mongoose.Schema({
       arr: [{ type: String, unique: true }]
     });
@@ -80,21 +70,18 @@ describe('API', function() {
 
     // Since `unique` creates an index, need to wait for the index to finish
     // building before the `unique` constraint kicks in.
-    M.on('index', function(error) {
-      assert.ifError(error);
-      M.create({ arr: ['test'] }, function(error, doc) {
-        doc.arr.push('test');
-        doc.save(function(error) {
-          // No error! That's because, without this plugin, a single doc can have
-          // duplicate values in `arr`. However, if you tried to `save()`
-          // a separate document with the value 'test' in `arr`, it will fail.
-          // acquit:ignore:start
-          assert.ifError(error);
-          done();
-          // acquit:ignore:end
-        });
-      });
-    });
+    await M.init();
+
+    // acquit:ignore:start
+    await M.deleteMany({});
+    // acquit:ignore:end
+
+    const doc = await M.create({ arr: ['test'] });
+    doc.arr.push('test');
+    // No error! That's because, without this plugin, a single doc can have
+    // duplicate values in `arr`. However, if you tried to `save()`
+    // a separate document with the value 'test' in `arr`, it will fail.
+    await doc.save();
   });
 
   /**
@@ -105,34 +92,39 @@ describe('API', function() {
    * time, the custom validator won't catch it. This plugin will surface a
    * separate error for this case.
    */
-  it('Caveat With `push()`', function(done) {
-    const M = mongoose.model('Test');
-
-    // Create a document with an empty `arr`
-    M.create({}, function(error, doc) {
-      assert.ifError(error);
-      // Get 2 copies of the same underlying document
-      M.findById(doc, function(error, doc1) {
-        M.findById(doc, function(error, doc2) {
-          // `push()` and `save()` on the first doc. Now `doc2` is out of date,
-          // it doesn't know that `doc1` pushed 'test'.
-          doc1.arr.push('test');
-          doc1.save(function(error) {
-            assert.ifError(error);
-            doc2.arr.push('test');
-            doc2.save(function(error) {
-              // Because of plugin, you'll get the below error
-              // VersionError: No matching document found for id "59192cbac4fd9871f28f4d61"
-              // acquit:ignore:start
-              assert.ok(error);
-              assert.ok(error.message.indexOf('No matching document') !== -1,
-                error.message);
-              done();
-              // acquit:ignore:end
-            });
-          });
-        });
-      });
+  it('Caveat With `push()`', async function() {
+    // acquit:ignore:start
+    const schema = new mongoose.Schema({
+      arr: [{ type: String, unique: true }],
+      docArr: [{ name: { type: String, unique: true } }]
     });
+
+    // Attach the plugin to the schema
+    schema.plugin(arrayUniquePlugin);
+    mongoose.deleteModel(/Test/);
+    const M = mongoose.model('Test', schema);
+    await M.init();
+    await M.deleteMany({});
+    // acquit:ignore:end
+    // Create a document with an empty `arr`
+    const doc = await M.create({});
+
+    const doc1 = await M.findById(doc);
+    const doc2 = await M.findById(doc);
+
+    // `push()` and `save()` on the first doc. Now `doc2` is out of date,
+    // it doesn't know that `doc1` pushed 'test'.
+    doc1.arr.push('test');
+    await doc1.save();
+
+    doc2.arr.push('test');
+    const error = await doc2.save().then(() => null, err => err);
+    // Because of plugin, you'll get the below error
+    // VersionError: No matching document found for id "59192cbac4fd9871f28f4d61"
+    // acquit:ignore:start
+    assert.ok(error);
+    assert.ok(error.message.indexOf('No matching document') !== -1,
+      error.message);
+    // acquit:ignore:end
   });
 });

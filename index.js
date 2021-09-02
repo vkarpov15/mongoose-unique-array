@@ -73,13 +73,13 @@ module.exports = function(schema) {
           !uniqueDocumentArrayPaths[dirt.path]) {
         continue;
       }
-      if (!has$push(dirt) || dirt.value._atomics.$push.$each == null) {
+      if (!has$push(dirt) || dirt.value.$atomics().$push.$each == null) {
         continue;
       }
 
       if (uniquePrimitiveArrayPaths[dirt.path]) {
         this.$where = this.$where || {};
-        this.$where[dirt.path] = { $nin: dirt.value._atomics.$push.$each };
+        this.$where[dirt.path] = { $nin: dirt.value.$atomics().$push.$each };
       } else {
         this.$where = this.$where || {};
         uniqueDocArrPaths = uniqueDocumentArrayPaths[dirt.path];
@@ -95,27 +95,28 @@ module.exports = function(schema) {
     }
 
     this.$__dirty().forEach(dirt => {
-      if (has$push(dirt) && dirt.value._atomics.$push.$each != null) {
+      if (has$push(dirt) && dirt.value.$atomics().$push.$each != null) {
         this.$where = this.$where || {};
         if (dirt.schema.$isMongooseDocumentArray) {
           this.$where[dirt.path + '._id'] = {
-            $nin: dirt.value._atomics.$push.$each.map(function(doc) {
+            $nin: dirt.value.$atomics().$push.$each.map(function(doc) {
               return doc._id;
             })
           };
         } else {
-          this.$where[dirt.path] = { $nin: dirt.value._atomics.$push.$each };
+          this.$where[dirt.path] = { $nin: dirt.value.$atomics().$push.$each };
         }
       }
     });
+
     next();
   });
 };
 
 function has$push(dirt) {
   return dirt.value != null &&
-    dirt.value._atomics != null &&
-    '$push' in dirt.value._atomics;
+    dirt.value.$atomics() != null &&
+    '$push' in dirt.value.$atomics();
 }
 
 function hasDuplicates(arr) {
