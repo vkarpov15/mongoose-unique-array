@@ -1,3 +1,7 @@
+0.4.1 / 2021-09-25
+==================
+ * fix: avoid throwing error if `has$push()` runs on non-array #13
+
 0.4.0 / 2021-09-02
 ==================
  * BREAKING CHANGE: upgrade to mongoose 6, drop support for Mongoose 5 #12
