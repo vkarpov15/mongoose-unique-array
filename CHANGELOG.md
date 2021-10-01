@@ -1,3 +1,7 @@
+0.4.2 / 2021-10-01
+==================
+ * fix: clear `$where` between saves to allow calling `save()` multiple times #16
+
 0.4.1 / 2021-09-25
 ==================
  * fix: avoid throwing error if `has$push()` runs on non-array #13
