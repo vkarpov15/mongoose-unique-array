@@ -1,6 +1,7 @@
 'use strict';
 
 var SchemaArray = require('mongoose').Schema.Types.Array;
+var localsSymbol = Symbol('mongoose-unique-array.locals');
 
 module.exports = function(schema) {
   schema.options.saveErrorIfNotFound = true;
@@ -66,6 +67,7 @@ module.exports = function(schema) {
 
     const dirty = this.$__dirty();
     const len = dirty.length;
+    this.$locals[localsSymbol] = {};
 
     for (let i = 0; i < len; ++i) {
       const dirt = dirty[i];
@@ -80,16 +82,18 @@ module.exports = function(schema) {
       if (uniquePrimitiveArrayPaths[dirt.path]) {
         this.$where = this.$where || {};
         this.$where[dirt.path] = { $nin: dirt.value.$atomics().$push.$each };
+        this.$locals[localsSymbol][dirt.path] = this.$where[dirt.path];
       } else {
         this.$where = this.$where || {};
         uniqueDocArrPaths = uniqueDocumentArrayPaths[dirt.path];
         numDocArrayPaths = uniqueDocArrPaths.length;
         for (let j = 0; j < numDocArrayPaths; ++j) {
           this.$where[dirt.path + '.' + uniqueDocArrPaths[j]] = {
-            $nin: dirt.value.map(function(subdoc) {
+            $nin: dirt.value.$atomics().$push.$each.map(function(subdoc) {
               return subdoc.get(uniqueDocArrPaths[j]);
             })
           };
+          this.$locals[localsSymbol][dirt.path + '.' + uniqueDocArrPaths[j]] = this.$where[dirt.path + '.' + uniqueDocArrPaths[j]];
         }
       }
     }
@@ -103,13 +107,28 @@ module.exports = function(schema) {
               return doc._id;
             })
           };
+          this.$locals[localsSymbol][dirt.path + '._id'] = this.$where[dirt.path + '._id'];
         } else {
           this.$where[dirt.path] = { $nin: dirt.value.$atomics().$push.$each };
+          this.$locals[localsSymbol][dirt.path] = this.$where[dirt.path];
         }
       }
     });
 
     next();
+  });
+
+  schema.post('save', function() {
+    const setWhereValues = this.$locals[localsSymbol];
+    if (setWhereValues == null) {
+      return;
+    }
+    
+    for (const key of Object.keys(setWhereValues)) {
+      if (this.$where[key] === setWhereValues[key]) {
+        delete this.$where[key];
+      }
+    }
   });
 };
 

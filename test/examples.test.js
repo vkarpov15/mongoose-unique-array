@@ -18,7 +18,10 @@ describe('API', function() {
     });
   });
 
-  beforeEach(() => client.db().collection('tests').deleteMany({}));
+  beforeEach(() => {
+    client.db().collection('tests').deleteMany({});
+    client.db().collection('test3').deleteMany({});
+  });
 
   after(function() {
     mongoose.disconnect();
@@ -50,6 +53,25 @@ describe('API', function() {
     // MongooseError: Duplicate values in array `arr`: [test,test]
     assert.ok(error.errors['arr'].message.indexOf('Duplicate values') !== -1,
       error.errors['arr'].message);
+  });
+
+  it('Pushing a new item to existing docArr and then calling save causes version error', async function() {
+    const schema = new mongoose.Schema({
+      arr: [{ type: String, unique: true }],
+      docArr: [{ name: { type: String, unique: true } }]
+    });
+
+    // Attach the plugin to the schema
+    schema.plugin(arrayUniquePlugin);
+    const M = mongoose.model('Test3', schema);
+
+    const doc = await M.create({});
+    doc.arr.push('test');
+    doc.docArr.push({ name: 'test' });
+    await doc.save();
+
+    doc.docArr.push({ name: 'something else' });
+    await doc.save();
   });
 
   /**
@@ -118,6 +140,44 @@ describe('API', function() {
     await doc1.save();
 
     doc2.arr.push('test');
+    const error = await doc2.save().then(() => null, err => err);
+    // Because of plugin, you'll get the below error
+    // VersionError: No matching document found for id "59192cbac4fd9871f28f4d61"
+    // acquit:ignore:start
+    assert.ok(error);
+    assert.ok(error.message.indexOf('No matching document') !== -1,
+      error.message);
+    // acquit:ignore:end
+  });
+
+  it('unusable With `push()`', async function() {
+    // acquit:ignore:start
+    const schema = new mongoose.Schema({
+      arr: [{ type: String, unique: true }],
+      docArr: [{ name: { type: String, unique: true } }]
+    });
+
+    // Attach the plugin to the schema
+    schema.plugin(arrayUniquePlugin);
+    mongoose.deleteModel(/Test/);
+    const M = mongoose.model('Test', schema);
+    await M.init();
+    await M.deleteMany({});
+    // acquit:ignore:end
+    // Create a document with an empty `arr`
+    const doc = await M.create({});
+
+    const doc1 = await M.findById(doc);
+    // const doc2 = await M.findById(doc);
+
+    // `push()` and `save()` on the first doc. Now `doc2` is out of date,
+    // it doesn't know that `doc1` pushed 'test'.
+    doc1.docArr.push({name:'test'});
+    await doc1.save();
+
+    const doc2 = await M.findById(doc);
+
+    doc2.docArr.push({name:'test2'});
     const error = await doc2.save().then(() => null, err => err);
     // Because of plugin, you'll get the below error
     // VersionError: No matching document found for id "59192cbac4fd9871f28f4d61"
