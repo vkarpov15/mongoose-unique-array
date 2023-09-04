@@ -19,7 +19,7 @@
   "license": "Apache 2.0",
   "main": "index.js",
   "peerDependencies": {
-    "mongoose": "7.x"
+    "mongoose": "6.x || 7.x"
   },
   "repository": {
     "type": "git",
