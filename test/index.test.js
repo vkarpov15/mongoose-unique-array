@@ -17,65 +17,49 @@ describe('arrayUnique', function() {
     });
   });
 
-  beforeEach(function(done) {
-    db.dropDatabase(done);
+  beforeEach(async function() {
+    await db.dropDatabase();
   });
 
   after(function() {
     db.close();
   });
 
-  it('pushing onto doc array', function(done) {
+  it('pushing onto doc array', async function() {
     var schema = new mongoose.Schema({
       docArr: [{ name: { type: String, unique: true } }]
     });
     schema.plugin(arrayUnique);
     var M = db.model('T2', schema);
 
-    M.create({}, function(error, doc) {
-      assert.ifError(error);
-      doc.docArr.push({ name: 'test' });
-      doc.save(function(error) {
-        assert.ifError(error);
-        doc.docArr.push({ name: 'test' });
-        doc.save(function(error) {
-          assert.ok(error);
-          assert.ok(error.errors['docArr'].message.indexOf('Duplicate values') !== -1,
-            error.errors['docArr'].message);
-          done();
-        });
-      });
+    const doc = await M.create({});
+    doc.docArr.push({ name: 'test' });
+    await doc.save();
+    doc.docArr.push({ name: 'test' });
+    await doc.save().catch(error => {
+      assert.ok(error.errors['docArr'].message.indexOf('Duplicate values') !== -1, error.errors['docArr'].message);
     });
   });
 
-  it('with race condition', function(done) {
+  it('with race condition', async function() {
     var schema = new mongoose.Schema({
       arr: [{ type: String, unique: true }]
     });
     schema.plugin(arrayUnique);
     var M = db.model('T3', schema);
 
-    M.create({}, function(error, doc) {
-      assert.ifError(error);
-      M.findById(doc, function(error, doc1) {
-        M.findById(doc, function(error, doc2) {
-          doc1.arr.push('test');
-          doc1.save(function(error) {
-            assert.ifError(error);
-            doc2.arr.push('test');
-            doc2.save(function(error) {
-              assert.ok(error);
-              assert.ok(error.message.indexOf('No matching document') !== -1,
-                error.message);
-              done();
-            });
-          });
-        });
-      });
+    const doc = await M.create({});
+    const doc1 = await M.findById(doc);
+    const doc2 = await M.findById(doc1);
+    doc1.arr.push('test');
+    await doc1.save();
+    doc2.arr.push('test');
+    await doc2.save().catch(error => {
+      assert.ok(error.message.indexOf('No matching document') !== -1, error.message);
     });
   });
 
-  it('with new docs', function(done) {
+  it('with new docs', async function() {
     var schema = new mongoose.Schema({
       arr: [{ type: String, unique: true }],
       docArr: [{ name: { type: String, unique: true } }]
@@ -87,17 +71,16 @@ describe('arrayUnique', function() {
       docArr: [{ name: 'test' }, { name: 'test' }]
     });
 
-    m.save(function(error) {
+    await m.save().catch(error => {
       assert.ok(error);
       assert.ok(error.errors['arr'].message.indexOf('Duplicate values') !== -1,
         error.errors['arr'].message);
       assert.ok(error.errors['docArr'].message.indexOf('Duplicate values') !== -1,
         error.errors['docArr'].message);
-      done();
     });
   });
 
-  it('nested', function(done) {
+  it('nested', async function() {
     var schema = new mongoose.Schema({
       nested: {
         arr: [{ type: String, unique: true }],
@@ -112,29 +95,26 @@ describe('arrayUnique', function() {
         docArr: [{ name: 'test' }, { name: 'test' }]
       }
     });
-
-    m.save(function(error) {
+    await m.save().catch(error => {
       assert.ok(error);
       assert.ok(error.errors['nested.arr'].message.indexOf('Duplicate values') !== -1,
         error.errors['nested.arr'].message);
       assert.ok(error.errors['nested.docArr'].message.indexOf('Duplicate values') !== -1,
         error.errors['nested.docArr'].message);
-      done();
     });
   });
 
-  it('with array set to null (gh-1)', function() {
+  it('with array set to null (gh-1)', async function() {
     const schema = new mongoose.Schema({
       arr: [{ type: String, unique: true }]
     });
     schema.plugin(arrayUnique);
     const M = db.model('gh1', schema);
 
-    return M.create({ arr: ['foo'] }).
-      then(res => {
-        res.arr = null;
-        // Should succeed
-        return res.save();
-      });
+    const doc = await M.create({ arr: ['foo'] });
+    doc.arr = null;
+    await doc.save();
+    assert.ok(doc);
+    assert.equal(doc.arr, null);
   });
 });
