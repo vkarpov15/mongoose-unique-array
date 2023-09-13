@@ -9,8 +9,8 @@ describe('API', function() {
   let client;
 
   before(function(done) {
-    const uri = 'mongodb://localhost:27017/test';
-    mongoose.connect(uri, { useNewUrlParser: true });
+    const uri = 'mongodb://127.0.0.1:27017/test';
+    mongoose.connect(uri);
     mongodb.MongoClient.connect(uri, function(error, _client) {
       assert.ifError(error);
       client = _client;
@@ -178,13 +178,6 @@ describe('API', function() {
     const doc2 = await M.findById(doc);
 
     doc2.docArr.push({name:'test2'});
-    const error = await doc2.save().then(() => null, err => err);
-    // Because of plugin, you'll get the below error
-    // VersionError: No matching document found for id "59192cbac4fd9871f28f4d61"
-    // acquit:ignore:start
-    assert.ok(error);
-    assert.ok(error.message.indexOf('No matching document') !== -1,
-      error.message);
-    // acquit:ignore:end
+    await doc2.save();
   });
 });
